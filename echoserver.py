@@ -11,6 +11,15 @@ import tornado.ioloop
 import tornado.iostream
 import tornado.tcpserver
 
+def read_until(stream, delimiter, _idalloc=itertools.count()):
+    cb_id = next(_idalloc)
+    cb = tornado.gen.Callback(cb_id)
+    stream.read_until(delimiter, cb)
+    return tornado.gen.Wait(cb)
+
+def write(stream, data):
+    return tornado.gen.Task(stream.write, data)
+
 class SimpleEcho(object):
     """
         Per-connection object.
@@ -33,10 +42,10 @@ class SimpleEcho(object):
         try:
             while True:
                 self.log("waiting for line on stream {}", self.stream)
-                line = yield self.stream.read_until("\n")
+                line = yield read_until(self.stream, "\n")
                 message_id = next(self.message_id_alloc)
                 self.log("got line {}: {}", message_id, repr(line))
-                yield self.stream.write(line)
+                yield write(self.stream, line)
         except tornado.iostream.StreamClosedError:
             pass
         return
