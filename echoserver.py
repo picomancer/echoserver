@@ -11,11 +11,13 @@ import tornado.ioloop
 import tornado.iostream
 import tornado.tcpserver
 
+@tornado.gen.coroutine
 def read_until(stream, delimiter, _idalloc=itertools.count()):
     cb_id = next(_idalloc)
-    cb = tornado.gen.Callback(cb_id)
+    cb = yield tornado.gen.Callback(cb_id)
     stream.read_until(delimiter, cb)
-    return tornado.gen.Wait(cb)
+    result = yield tornado.gen.Wait(cb_id)
+    raise tornado.gen.Return(result)
 
 def write(stream, data):
     return tornado.gen.Task(stream.write, data)
